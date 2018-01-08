@@ -20,23 +20,25 @@ import model.JsonSupport._
 
 class Master extends Actor with SprayJsonSupport {
 
+  val config = ConfigFactory.load()
+  val topStories = config.getString("hackernews.topstories")
+  val maxstories = config.getInt("hackernews.maxstories")
+
   implicit val timeout = Timeout(10 seconds)
   implicit val materializer = ActorMaterializer()
   implicit val system = core.Boot.system
 
-  val router = context.actorOf(Props[Worker].withRouter(RoundRobinPool(nrOfInstances = 5)), "router")
-  val config = ConfigFactory.load()
-  val topStories = config.getString("hackernews.topstories")
-  val maxstories = config.getInt("hackernews.maxstories")
+  val router = context.actorOf(Props[Worker].withRouter(RoundRobinPool(nrOfInstances = maxstories)), "router")
 
   def receive = {
     case StartWork =>
       // Fetch top 500 stories
       println("Fetching top 500 stories...")
       val future: Future[HttpResponse] = Http().singleRequest(HttpRequest(uri = topStories))
-      future.foreach{ result =>
-        Unmarshal(result.entity).to[List[Int]].foreach { id =>
-          id.take(maxstories).map(i => router ? Work(i)).foreach { future =>
+      future.foreach { result =>
+        Unmarshal(result.entity).to[List[Int]].foreach { ids =>
+          println(ids.take(maxstories))
+          ids.take(maxstories).map(id => router ? Work(id)).foreach { future =>
             future.foreach {
               case reply: Reply => println(reply)
             }
