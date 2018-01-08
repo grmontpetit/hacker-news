@@ -11,3 +11,10 @@ case class Story(by: String,
                  title: String,
                  `type`: String,
                  url: String) extends Model
+
+case class Comment(by: String,
+                   id: Int,
+                   parent: Int,
+                   text: String,
+                   time: Long,
+                   `type`: String)

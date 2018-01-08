@@ -5,4 +5,5 @@ import spray.json.DefaultJsonProtocol
 
 object JsonSupport extends SprayJsonSupport with DefaultJsonProtocol {
   implicit val itemJsonFormat = jsonFormat9(Story)
+  implicit val commentJsonFormat = jsonFormat6(Comment)
 }
