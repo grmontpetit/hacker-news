@@ -36,7 +36,7 @@ class Master extends Actor with SprayJsonSupport {
       val future: Future[HttpResponse] = Http().singleRequest(HttpRequest(uri = topStories))
       future.foreach{ result =>
         Unmarshal(result.entity).to[List[Int]].foreach { id =>
-          id.take(5).map(i => router ? Work(i)).foreach { future =>
+          id.take(maxstories).map(i => router ? Work(i)).foreach { future =>
             future.foreach {
               case reply: Reply => println(reply)
             }
