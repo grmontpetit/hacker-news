@@ -1,12 +1,16 @@
 package actors
 
 import akka.actor.Actor
+import com.typesafe.config.ConfigFactory
 import model.Item
 
 import scala.language.postfixOps
 import scala.util.Random
 
 class Worker extends Actor {
+
+  val config = ConfigFactory.load()
+  val itemUrl = config.getString("hackernews.item")
 
   def receive = {
     case Work(storyId) => {
