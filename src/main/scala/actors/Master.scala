@@ -1,19 +1,28 @@
 package actors
 
-import akka.pattern.ask
 import akka.actor.{Actor, Props}
+import akka.http.scaladsl.Http
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
+import akka.http.scaladsl.model.{HttpRequest, HttpResponse}
+import akka.http.scaladsl.unmarshalling._
+import akka.pattern.ask
 import akka.routing.RoundRobinPool
+import akka.stream.ActorMaterializer
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
 import scala.language.postfixOps
+import model.JsonSupport._
 
-import scala.concurrent.ExecutionContext.Implicits.global
 
-class Master extends Actor {
+class Master extends Actor with SprayJsonSupport {
 
   implicit val timeout = Timeout(10 seconds)
+  implicit val materializer = ActorMaterializer()
+  implicit val system = core.Boot.system
 
   val router = context.actorOf(Props[Worker].withRouter(RoundRobinPool(nrOfInstances = 5)), "router")
   val config = ConfigFactory.load()
@@ -24,11 +33,14 @@ class Master extends Actor {
     case StartWork =>
       // Fetch top 500 stories
       println("Fetching top 500 stories...")
-      // val response: Future[HttpResponse] = Http().singleRequest(HttpRequest(uri = topStories))
-      // dispatch story data and comment to workers
-      (1 to maxstories).map(i => router ? Work(i)).foreach { future =>
-        future.foreach {
-          case reply: Reply => println(reply)
+      val future: Future[HttpResponse] = Http().singleRequest(HttpRequest(uri = topStories))
+      future.foreach{ result =>
+        Unmarshal(result.entity).to[List[Int]].foreach { id =>
+          id.take(5).map(i => router ? Work(i)).foreach { future =>
+            future.foreach {
+              case reply: Reply => println(reply)
+            }
+          }
         }
       }
     case _ => Unit

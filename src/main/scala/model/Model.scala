@@ -2,7 +2,6 @@ package model
 
 sealed trait Model
 
-case class TopStories(storiesId: List[Int]) extends Model
 case class Item(by: String,
                 id: Int,
                 kids: List[Int],

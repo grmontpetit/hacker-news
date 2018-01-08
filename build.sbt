@@ -11,12 +11,10 @@ scalacOptions := Seq("-feature", "-unchecked", "-deprecation", "-encoding", "utf
 fork := true
 
 libraryDependencies ++= {
-  val akkaV = "2.5.8"
+  val akkaV = "10.0.11"
   Seq(
-    "com.typesafe.akka"    %%  "akka-actor"     % akkaV,
-    "com.typesafe.akka"    %%  "akka-testkit"   % akkaV   % "test",
     "com.typesafe.akka"    %% "akka-http" % "10.0.11",
-    "com.typesafe.akka" %% "akka-http-spray-json" % "10.0.0"
+    "com.typesafe.akka" %% "akka-http-spray-json" % "10.0.11"
   )
 }
 
