@@ -2,11 +2,12 @@ package model
 
 sealed trait Model
 
-case class Item(by: String,
-                id: Int,
-                kids: List[Int],
-                parent: Int,
-                text: String,
-                time: Long,
-                `type`: String,
-                url: Option[String] = None) extends Model
+case class Story(by: String,
+                 descendants: Int,
+                 id: Int,
+                 kids: List[Int],
+                 score: Int,
+                 time: Long,
+                 title: String,
+                 `type`: String,
+                 url: String) extends Model

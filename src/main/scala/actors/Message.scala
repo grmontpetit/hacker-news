@@ -1,10 +1,10 @@
 package actors
 
-import model.Item
+import model.Story
 
 sealed trait Message
 
 case class Work(storyId: Int) extends Message
 case object StartWork extends Message
 
-case class Reply(id: Int, execTime: Int, item: Item)
+case class Reply(item: Story)

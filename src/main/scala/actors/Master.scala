@@ -2,7 +2,6 @@ package actors
 
 import akka.actor.{Actor, Props}
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.model.{HttpRequest, HttpResponse}
 import akka.http.scaladsl.unmarshalling._
 import akka.pattern.ask
@@ -17,8 +16,7 @@ import scala.concurrent.duration.DurationInt
 import scala.language.postfixOps
 import model.JsonSupport._
 
-
-class Master extends Actor with SprayJsonSupport {
+class Master extends Actor {
 
   val config = ConfigFactory.load()
   val topStories = config.getString("hackernews.topstories")
