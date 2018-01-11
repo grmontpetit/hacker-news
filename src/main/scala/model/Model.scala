@@ -18,3 +18,13 @@ case class Comment(by: String,
                    text: String,
                    time: Long,
                    `type`: String)
+
+case class StoryReply(by: String,
+                     descendants: Int,
+                     id: Int,
+                     kids: List[Comment],
+                     score: Int,
+                     time: Long,
+                     title: String,
+                     `type`: String,
+                     url: String) extends Model
