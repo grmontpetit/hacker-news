@@ -45,9 +45,9 @@ class Master extends Actor {
           val intermediateFuture: Future[Future[List[CommentsReply]]] = stories.map { storyList =>
               Future.sequence(storyList.map { story =>
               Future.sequence(story.kids.getOrElse(List.empty[Int]).map { kid =>
-                eval(story, kid)
-              }).map(_.reduceLeft(_ ++ _))
-            }).map(_.reduceLeft(_ ++ _))
+                eval(Future.successful(List.empty[CommentsReply]), story, kid)
+              }).map(_.flatten)
+            }).map(_.flatten)
           }
           val commentsReply: Future[List[CommentsReply]] = intermediateFuture.flatMap(identity)
           commentsReply.foreach { c =>
@@ -64,15 +64,22 @@ class Master extends Actor {
     case _ => Unit
   }
 
-  private def eval(story: Story, id: Int): Future[List[CommentsReply]] = {
+  private def eval(acc: Future[List[CommentsReply]], story: Story, id: Int): Future[List[CommentsReply]] = {
     val comments: Future[CommentsReply] = (router ? GetComments(story, id)).mapTo[CommentsReply]
     comments.flatMap { comment =>
       if (comment.comment.kids.isDefined) {
-        Future.sequence (
-          comment.comment.kids.get.map(k => eval(story, k))
-          ).map(_.fold(List.empty[CommentsReply])(_ ++ _))
-      }
-      else Future.successful(List.empty[CommentsReply])
+        val zz =
+          comment.comment.kids.getOrElse(List.empty[Int]).map { kid =>
+            comments.flatMap { x =>
+              val accumulated: Future[List[CommentsReply]] = acc.map { f =>
+                x :: f
+              }
+              eval(accumulated, story, kid)
+            }
+          }
+        val dd: List[Future[List[CommentsReply]]] = zz
+        Future.sequence(dd).map(_.flatten)
+      } else acc
     }
   }
 }
