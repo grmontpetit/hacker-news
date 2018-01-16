@@ -38,20 +38,19 @@ class Master extends Actor {
       val future: Future[HttpResponse] = Http().singleRequest(HttpRequest(uri = topStories))
       future.foreach { result =>
         Unmarshal(result.entity).to[List[Int]].foreach { ids =>
+          // take x max stories out of 500
           val stories: Future[List[Story]] = Future.sequence(ids.take(maxStories).map { id =>
             (router ? GetStory(id)).flatMap {
               case StoryReply(story) => Future.successful(story)
             }})
-          val intermediateFuture: Future[Future[List[CommentsReply]]] = stories.map { storyList =>
+          val intermediateFuture: Future[Future[List[CommentReply]]] = stories.map { storyList =>
               Future.sequence(storyList.map { story =>
-              Future.sequence(story.kids.getOrElse(List.empty[Int]).map { kid =>
-                eval(Future.successful(List.empty[CommentsReply]), story, kid)
-              }).map(_.flatten)
+                eval(List.empty[CommentReply], story, story.kids)
             }).map(_.flatten)
           }
-          val commentsReply: Future[List[CommentsReply]] = intermediateFuture.flatMap(identity)
+          val commentsReply: Future[List[CommentReply]] = intermediateFuture.flatMap(identity)
           commentsReply.foreach { c =>
-            boot ! WorkComplete(c)
+            boot ! WorkComplete(c.distinct)
           }
         }
       }
@@ -64,22 +63,23 @@ class Master extends Actor {
     case _ => Unit
   }
 
-  private def eval(acc: Future[List[CommentsReply]], story: Story, id: Int): Future[List[CommentsReply]] = {
-    val comments: Future[CommentsReply] = (router ? GetComments(story, id)).mapTo[CommentsReply]
-    comments.flatMap { comment =>
-      if (comment.comment.kids.isDefined) {
-        val zz =
-          comment.comment.kids.getOrElse(List.empty[Int]).map { kid =>
-            comments.flatMap { x =>
-              val accumulated: Future[List[CommentsReply]] = acc.map { f =>
-                x :: f
-              }
-              eval(accumulated, story, kid)
-            }
-          }
-        val dd: List[Future[List[CommentsReply]]] = zz
-        Future.sequence(dd).map(_.flatten)
-      } else acc
+  /**
+    * Recursive function to fetch kids of kids.
+    * @param acc The accumulator of the kids.
+    * @param story The initial story.
+    * @param kids The kids as an Option
+    * @return A Future of List[CommentReply]
+    */
+  private def eval(acc: List[CommentReply], story: Story, kids: Option[List[Int]]): Future[List[CommentReply]] = {
+    if (kids.isDefined) {
+      Future.sequence(kids.get.map { kid =>
+        val commentFuture: Future[CommentReply] = (router ? GetComment(story, kid)).mapTo[CommentReply]
+        commentFuture.flatMap { commentReply =>
+          eval(commentReply :: acc, story, commentReply.comment.kids)
+        }
+      }).map(_.flatten)
+    } else {
+      Future.successful(acc)
     }
   }
 }

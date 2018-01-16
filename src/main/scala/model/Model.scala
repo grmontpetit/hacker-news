@@ -41,7 +41,7 @@ case class Story(by: String,
 case class Comment(by: Option[String],
                    id: Int,
                    kids: Option[List[Int]],
-                   parent: Int,
+                   parent: Option[Int],
                    text: Option[String],
                    time: Long,
                    `type`: `type`)

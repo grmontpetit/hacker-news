@@ -34,13 +34,13 @@ class Worker extends Actor {
         case story: Story => master ! StoryReply(story)
       }
 
-    case GetComments(story, item) => {
+    case GetComment(story, item) => {
       val master = sender
       val comment: Future[Comment] = exec(item).flatMap { response =>
         Unmarshal(response.entity).to[Comment]
       }
       Await.result(comment, 5 seconds) match {
-        case comment: Comment => master ! CommentsReply(story, comment)
+        case comment: Comment => master ! CommentReply(story, comment)
       }
     }
   }
@@ -49,8 +49,13 @@ class Worker extends Actor {
     itemUrl.replace("$id", id.toString)
   }
 
+  /**
+    * Sends an Http request to hacker news
+    * by using an ID. The ID can be a story
+    * or a comment.
+    * @return A function that takes an Int and returns a Future[HttpResponse]
+    */
   private def exec: Int => Future[HttpResponse] = { id =>
-    println(s"exec $id")
     Http().singleRequest(HttpRequest(uri = url.apply(id)))
   }
 
