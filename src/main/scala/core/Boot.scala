@@ -1,7 +1,7 @@
 package core
 
 import akka.pattern.ask
-import actors.{Master, StartWork, StopWork, WorkComplete}
+import actors._
 import akka.actor.{ActorSystem, Props}
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
@@ -29,8 +29,9 @@ object Boot extends App {
 
   complete.onComplete {
     case Success(WorkComplete(commentsReplies)) =>
-      println("success " + commentsReplies.size)
-      commentsReplies.foreach(println)
+      val allComments = commentsReplies.map(_.comment)
+      commentsReplies.groupBy(_.story).map(d => d._1 -> d._2.map(_.comment)).foreach(item => printLine(item, allComments))
+
       val stop = dispatcher ? StopWork
       stop.onComplete {
         case Success(_) => system.terminate()
@@ -39,8 +40,15 @@ object Boot extends App {
     case Failure(reason) => println("Failure: " + reason)
   }
 
-  private def formatLine(tuple: (Story, List[Comment])): String = {
-    s"| ${tuple._1.title} "
+  /**
+    * Print story informations to console.
+    * @param story The story is a tuple of story and the list of comments, including all childs.
+    * @param allComments All the comments for all the stories.
+    */
+  private def printLine(story: (Story, List[Comment]), allComments: List[Comment]): Unit = {
+    val topTen = story._2.filter(_.by.isDefined).map(_.by.get).groupBy(identity).mapValues(_.size).toSeq.sortWith(_._2 > _._2).take(10)
+    //println(topTen)
+    println(s"| ${story._1.title} | ${topTen.map(t => t._1 + " (" + t._2 + " for story - " + allComments.count(f => f.by.getOrElse("") == t._1) + " total) | ").mkString}")
   }
 
 }
